@@ -39,9 +39,9 @@ model_fit = model.fit()
 predictions = model_fit.forecast(steps=len(test))
 
 # 结果可视化
-# plt.plot(train.index, train, label='Actual Data')
-plt.plot(hourly_io.index, hourly_io, label='Actual Data')
-# plt.plot(test.index, predictions, label='Predicted Data', color='red')
+plt.plot(train.index, train, label='Actual Data')
+# plt.plot(hourly_io.index, hourly_io, label='Actual Data')
+plt.plot(test.index, predictions, label='Predicted Data', color='red')
 plt.title('IO Size Evolution with Time')
 plt.xlabel('Time')
 plt.ylabel('IO size/byte')

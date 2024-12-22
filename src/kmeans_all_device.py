@@ -16,32 +16,102 @@ statistics = []
 
 def DataPreProcess():
 
-    for file_path in file_paths:
-        df = pd.read_csv(file_path, names=["device_id", "opcode", "offset", "length", "timestamp"])
-        df['operation_type'] = df['opcode'].map({'R': 1, 'W': 0})
-        df['timestamp_diff'] = df['timestamp'].diff().fillna(0)
-        io_count = len(df)
-        io_size_avg = df['length'].mean()
-        io_size_std = df['length'].std() if df['length'].size > 1 else 0
-        read_write_ratio = df['operation_type'].mean()
-        response_time_avg = df['timestamp_diff'].mean()          
-        response_time_std = df['timestamp_diff'].std() if df['timestamp_diff'].size > 1 else 0
+    # for file_path in file_paths:
+    #     df = pd.read_csv(file_path, names=["device_id", "opcode", "offset", "length", "timestamp"])
+    #     df['operation_type'] = df['opcode'].map({'R': 1, 'W': 0})
+    #     df['timestamp_diff'] = df['timestamp'].diff().fillna(0)
+    #     io_count = len(df)
+    #     io_size_avg = df['length'].mean()
+    #     io_size_std = df['length'].std() if df['length'].size > 1 else 0
+    #     read_write_ratio = df['operation_type'].mean()
+    #     response_time_avg = df['timestamp_diff'].mean()          
+    #     response_time_std = df['timestamp_diff'].std() if df['timestamp_diff'].size > 1 else 0
         
-        statistics.append({
-            "file": file_path,
-            "io_count": io_count,
-            "io_size_avg": io_size_avg,
-            "io_size_std": io_size_std,
-            "read_write_ratio": read_write_ratio,
-            "response_time_avg": response_time_avg,
-            "response_time_std": response_time_std,
-        })
-    feature_df = pd.DataFrame(features, columns=['avg_io_count', 'avg_io_size', 'io_size_std', 'read_write_ratio', 'avg_response_time', 'interval_mean', 'interval_std'])
+    #     statistics.append({
+    #         "file": file_path,
+    #         "io_count": io_count,
+    #         "io_size_avg": io_size_avg,
+    #         "io_size_std": io_size_std,
+    #         "read_write_ratio": read_write_ratio,
+    #         "response_time_avg": response_time_avg,
+    #         "response_time_std": response_time_std,
+    #     })
+    # stats_df = pd.DataFrame(statistics)
+    # stats_df.to_csv('./stats_df.csv', index=False)
+    stats_df = pd.read_csv('./stats_df.csv')
 
-    # 查看提取的特征
-    print("print feature_df")
-    print(feature_df)
-    return feature_df
+    print("print stats_df:")
+    print(stats_df)
+
+    # 标准化
+    features = stats_df[["io_count", "io_size_avg", "io_size_std", "read_write_ratio", "response_time_avg", "response_time_std"]]
+    scaler = StandardScaler()
+    features_scaled = scaler.fit_transform(features)
+    
+    # PCA降维
+    pca = PCA(n_components=2)
+    features_pca = pca.fit_transform(features_scaled)
+    loading_matrix = pd.DataFrame(
+        pca.components_,
+        columns=["io_count", "io_size_avg", "io_size_std", "read_write_ratio", "response_time_avg", "response_time_std"],
+        index=['PCA1', 'PCA2']
+    )
+
+    print("主成分载荷矩阵：")
+    print(loading_matrix)
+
+    pca_df = pd.DataFrame(features_pca, columns=["PCA1", "PCA2"])
+
+    # 肘部法则确定k
+    # inertia = []
+    # K = range(1, 11)
+    # for k in K:
+    #     kmeans = KMeans(n_clusters=k, random_state=42)
+    #     kmeans.fit(features_pca)
+    #     inertia.append(kmeans.inertia_)
+
+    # 绘制肘部法图像
+    # plt.figure(figsize=(8, 6))
+    # plt.plot(K, inertia, 'bo-', markersize=8)
+    # plt.xlabel('Number of Clusters (k)')
+    # plt.ylabel('Inertia')
+    # plt.title('Elbow Method for Optimal k')
+    # plt.show()
+
+
+    # 绘制聚类结果
+    optimal_k = 4
+    kmeans = KMeans(n_clusters=optimal_k, random_state=42)
+    pca_df['cluster'] = kmeans.fit_predict(features_pca)
+
+
+    # 绘制每个device
+    plt.figure(figsize=(10, 8))
+    for cluster in range(optimal_k):
+        cluster_data = pca_df[pca_df['cluster'] == cluster]
+        plt.scatter(cluster_data['PCA1'], cluster_data['PCA2'], s=200, label=f"Cluster {cluster}")
+
+    # 绘制聚类中心
+    centroids = kmeans.cluster_centers_
+    plt.scatter(
+        centroids[:, 0], centroids[:, 1],
+        marker='*', s=300, label='Centroids'
+    )
+
+
+
+
+    plt.xlabel('PCA1')
+    plt.ylabel('PCA2')
+    plt.title('KMeans Clustering Results (PCA Reduced)')
+    plt.legend()
+    plt.show()
+
+
+
+
+
+    return stats_df
 
 
 def StandardProcess(feature_df):
@@ -95,7 +165,7 @@ def MyKMeans(k):
 
 if __name__ == '__main__':
     feature_df = DataPreProcess()
-    X_scaled = StandardProcess(feature_df)
-    # GetK(X_scaled)
-    k = 6
-    MyKMeans(k)
+    # X_scaled = StandardProcess(feature_df)
+    # # GetK(X_scaled)
+    # k = 6
+    # MyKMeans(k)
