@@ -86,10 +86,10 @@ def DataPreProcess():
 
 
     # 绘制每个device
-    plt.figure(figsize=(10, 8))
+    plt.figure(figsize=(6, 4))
     for cluster in range(optimal_k):
         cluster_data = pca_df[pca_df['cluster'] == cluster]
-        plt.scatter(cluster_data['PCA1'], cluster_data['PCA2'], s=200, label=f"Cluster {cluster}")
+        plt.scatter(cluster_data['PCA1'], cluster_data['PCA2'], s=75, label=f"Cluster {cluster}")
 
     # 绘制聚类中心
     centroids = kmeans.cluster_centers_
